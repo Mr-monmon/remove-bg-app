@@ -1,41 +1,59 @@
 from flask import Flask, request, jsonify
 from rembg import remove
-from io import BytesIO
-import base64
 from PIL import Image
-import os
+import base64
+import io
 
 app = Flask(__name__)
 
-@app.route('/')
-def index():
-    return "Background Removal API is running!"
-
-@app.route('/remove-background', methods=['POST'])
-def remove_bg():
+@app.route('/', methods=['POST'])
+def remove_background():
     try:
         data = request.get_json()
-        image_data = data.get('image')
-        if not image_data:
-            return jsonify({"error": "No image data provided"}), 400
-
-        # Decode the base64 string
-        img_data = base64.b64decode(image_data.split(',')[1])
-        img = Image.open(BytesIO(img_data))
-
-        # Remove the background using rembg
-        result = remove(img)
-
-        # Convert the result to a base64 string
-        buffered = BytesIO()
-        result.save(buffered, format="PNG")
-        result_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-        return jsonify({"image": f"data:image/png;base64,{result_base64}"})
+        base64_image = data.get('image')
+        image_bytes = base64.b64decode(base64_image)
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Remove background
+        output = remove(image)
+        
+        # Convert back to base64
+        buffered = io.BytesIO()
+        output.save(buffered, format="PNG")
+        processed_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        
+        return jsonify({'processedImage': processed_image})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    # Use the port provided by Render, or default to 5000
-    port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5000, debug=True)from flask import Flask, request, jsonify
+from rembg import remove
+from PIL import Image
+import base64
+import io
+
+app = Flask(__name__)
+
+@app.route('/', methods=['POST'])
+def remove_background():
+    try:
+        data = request.get_json()
+        base64_image = data.get('image')
+        image_bytes = base64.b64decode(base64_image)
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Remove background
+        output = remove(image)
+        
+        # Convert back to base64
+        buffered = io.BytesIO()
+        output.save(buffered, format="PNG")
+        processed_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        
+        return jsonify({'processedImage': processed_image})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
